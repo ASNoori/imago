@@ -1,5 +1,5 @@
 // ImageGallery.js
-import React, { useState } from "react";
+import React, { useState} from "react";
 import {
   Grid,
   Card,
@@ -14,6 +14,11 @@ import DownloadForOfflineIcon from "@mui/icons-material/DownloadForOffline";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import { saveAs } from "file-saver";
 import MaterialModal from "../contributor components/Modal";
+import ClearIcon from "@mui/icons-material/Clear";
+import HighlightOffIcon from "@mui/icons-material/HighlightOff";
+import DownloadIcon from "@mui/icons-material/Download";
+import { Link } from "react-router-dom";
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 
 const ImageGallery = ({ searchResults, favorites, toggleFavorite }) => {
   // for image modal
@@ -60,19 +65,48 @@ const ImageGallery = ({ searchResults, favorites, toggleFavorite }) => {
 
       console.log("Downloading image:", image);
 
-      // Remove the data URI prefix
-      const base64String = image.image.replace(
-        /^data:image\/[a-z]+;base64,/,
-        ""
-      );
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
 
-      // Create a Blob from the base64 string
-      const blob = b64toBlob(base64String, "image/jpeg");
+      // Create a new image element to load the original image
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // Enable cross-origin access for the image
+      img.onload = () => {
+        // Set canvas dimensions to match the image
+        canvas.width = img.width;
+        canvas.height = img.height;
 
-      // Use file-saver to save the Blob as a file
-      saveAs(blob, `${image.title} by ${image.name}.jpeg`);
+        // Draw the original image on the canvas
+        ctx.drawImage(img, 0, 0, img.width, img.height);
 
-      console.log("Image downloaded successfully");
+        // Add watermark text
+        ctx.font = "20px Arial";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; // Adjust the alpha value for watermark opacity
+        ctx.fillText("@imago", 10, canvas.height - 10); // Adjust the position of the watermark
+
+        // Convert the canvas content to a data URL
+        const watermarkedDataUrl = canvas.toDataURL("image/jpeg");
+
+        // Remove the data URI prefix
+        // const base64String = image.image.replace(
+        //   /^data:image\/[a-z]+;base64,/,
+        //   ""
+        // );
+        const base64String = watermarkedDataUrl.replace(
+          /^data:image\/[a-z]+;base64,/,
+          ""
+        );
+
+        // Create a Blob from the base64 string
+        const blob = b64toBlob(base64String, "image/jpeg");
+
+        // Use file-saver to save the Blob as a file
+        saveAs(blob, `${image.title} by ${image.name}.jpeg`);
+
+        console.log("Image downloaded successfully");
+      };
+      // Set the image source to the original image URL
+      img.src = image.image;
     } catch (error) {
       console.error("Error downloading image:", error);
     }
@@ -107,17 +141,7 @@ const ImageGallery = ({ searchResults, favorites, toggleFavorite }) => {
   const closeImageModal = () => {
     setImageModalOpen(false);
   };
-  // handle share url
-  const handleShareUrl=async() =>{
-      try{
-          const urlToCopy = window.location.href;
-          await navigator.clipboard.writeText(urlToCopy);
-          alert('URL copied to clipboard!');
-      }
-      catch(err){
-          console.error('Unable to copy url to clipboard',err);
-      }
-  }
+
   return (
     <Box id="imagegallery">
       <Grid container spacing={3} p={6}>
@@ -136,9 +160,10 @@ const ImageGallery = ({ searchResults, favorites, toggleFavorite }) => {
               />
               <CardMedia
                 component="img"
+                onContextMenu={(e) => e.preventDefault()}
                 alt={image.title}
                 src={image.image}
-                style={{ width: "100%" }}
+                style={{ width: "100%", cursor: "pointer" }}
                 onLoad={(e) => {
                   // const aspectRatio = e.target.width / e.target.height;
                   // const calculatedHeight = 400 / aspectRatio; // Adjust 400 as needed
@@ -170,7 +195,11 @@ const ImageGallery = ({ searchResults, favorites, toggleFavorite }) => {
             </Card>
             <Box>
               <MaterialModal
-                title={selectedImage ? selectedImage.title : ""}
+                title={
+                  selectedImage
+                    ? `${selectedImage.title} By ${selectedImage.name}`
+                    : ""
+                }
                 open={isimageModalOpen}
                 onClose={closeImageModal}
               >
@@ -178,6 +207,7 @@ const ImageGallery = ({ searchResults, favorites, toggleFavorite }) => {
                   <Grid item xs={8}>
                     {selectedImage && (
                       <img
+                        onContextMenu={(e) => e.preventDefault()}
                         src={selectedImage.image}
                         alt={selectedImage.title}
                         style={{ maxWidth: "100%", maxHeight: "100%" }}
@@ -193,13 +223,36 @@ const ImageGallery = ({ searchResults, favorites, toggleFavorite }) => {
                         mb: 2,
                         background: "#000",
                         "&:hover": { background: "#000" },
+                        display: "flex",
+                        justifyContent: "space-evenly",
                       }}
                       onClick={() => handleDownload(selectedImage)}
                     >
+                      <DownloadIcon />
                       Download
                     </Button>
-                    <Button onClick={() => handleShareUrl()}>
-                      Share
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      sx={{
+                        mt: 3,
+                        mb: 2,
+                        background: "#000",
+                        "&:hover": { background: "#000" },
+                      }}
+                    >
+                      <Link 
+                      style={{
+                        color:'white',
+                        textDecoration:'none',
+                        display: "flex",
+                        justifyContent: "space-evenly",
+                        width:'100%'
+                      }}
+                      to="https://donate.stripe.com/test_00g3fJfcE7ov1SE3cd">
+                     <VolunteerActivismIcon/>
+                      Donate
+                      </Link>
                     </Button>
                   </Grid>
                 </Grid>
